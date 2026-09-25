@@ -83,10 +83,9 @@ def simulate_x_step(k):
     
     noise = np.linalg.cholesky(Qk) @ np.random.randn(6)
 
-    if k==0:
-        pass
-
-    XTrue[k] = Fk @ XTrue[k-1] + noise
+    if k!=0:
+        XTrue[k] = Fk @ XTrue[k-1] + noise
+    print(f"Voici XTrue : {XTrue[k]} et k : {k}")
     
 def simulate_y(k):
     global XTrue, Y
@@ -95,18 +94,20 @@ def simulate_y(k):
 
     noise = np.linalg.cholesky(Rk) @ np.random.randn(3)
 
-    if k==0:
-        pass
-
-    Y[k] = Hk @ XTrue[k] + noise
+    if k!=0:
+        Y[k] = Hk @ XTrue[k] + noise
 
 
 
 for k in range(N):
     # Fk = F(k)
-    
-    kf.predict(Fk, Qk)
 
+    simulate_x_step(k+1)
+
+    kf.predict(Fk, Qk)
+    
+    simulate_y(k+1)
+    
     innovation, S, K = kf.update(Y[k], H(k), R(k))
 
     if k == 0:
@@ -119,16 +120,14 @@ for k in range(N):
     XEst[k + 1] = kf.x
     PEst[k + 1] = kf.P
 
-    simulate_x_step(k)
-    simulate_y(k)
     pass
-
 fig, axes = plt.subplots(2, 3, sharex=True)
 
 t = np.arange(N+1) - 1
 
 x_true = XTrue[:,0]
 y_true = XTrue[:,1]
+print(y_true)
 z_true = XTrue[:,2]
 vx_true = XTrue[:,3]
 vy_true = XTrue[:,4]
