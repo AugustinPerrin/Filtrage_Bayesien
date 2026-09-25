@@ -80,14 +80,49 @@ def R(k):
 
 def simulate_x_step(k):
     global XTrue
-    # TODO
+    
+    Fk = F(k)
+    Qk = Q(k)
 
+    noise = np.linalg.cholesky(Qk) @ np.random.randn(6)
+
+    if k==0:
+        pass
+    
+    XTrue[k] = Fk @ XTrue[k-1] + noise
+    
 def simulate_y(k):
     global XTrue, Y
-    # TODO
+    Hk = H(k)
+    Rk = R(k)
+
+    noise = np.linalg.cholesky(Rk) @ np.random.randn(3)
+
+    if k==0:
+        pass
+
+    Y[k] = Hk @ Rk
+
+
 
 for k in range(N):
-    # TODO
+
+    kf.predict(F(k), Q)
+
+    innovation, S, K = kf.update(Y[k], H(k), R(k))
+
+    if k == 0:
+        print("innovation ", innovation)
+        print("K ", K)
+        print("x(k+1|k+1) ", kf.x)
+        print("P(k+1|k+1) ", kf.P)
+        print("----------------")
+
+    XEst[k + 1] = kf.x
+    PEst[k + 1] = kf.P
+
+    simulate_x_step(k)
+    simulate_y(k)
     pass
 
 fig, axes = plt.subplots(2, 3, sharex=True)
