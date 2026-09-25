@@ -36,7 +36,7 @@ Fk = np.eye(6,6)
 Fk[0,3] = DeltaT
 Fk[1,4] = DeltaT
 Fk[2,5] = DeltaT
-
+print(Fk)
 Qk = np.eye(6,6)
 Qk[0,0] = 0.0001
 Qk[1,1] = 0.0001
@@ -66,10 +66,10 @@ print("Rk",Rk)
 kf = kalman.KalmanFilter(X0, P0)
 
 def F(k):
-    return Fk
+    return np.asarray(Fk)
 
 def Q(k):
-    return Qk
+    return np.asarray(Qk)
 
 def H(k):
     return Hk
@@ -81,33 +81,31 @@ def R(k):
 def simulate_x_step(k):
     global XTrue
     
-    Fk = F(k)
-    Qk = Q(k)
-
     noise = np.linalg.cholesky(Qk) @ np.random.randn(6)
 
     if k==0:
         pass
-    
+
     XTrue[k] = Fk @ XTrue[k-1] + noise
     
 def simulate_y(k):
     global XTrue, Y
-    Hk = H(k)
-    Rk = R(k)
+    # Hk = H(k)
+    # Rk = R(k)
 
     noise = np.linalg.cholesky(Rk) @ np.random.randn(3)
 
     if k==0:
         pass
 
-    Y[k] = Hk @ Rk
+    Y[k] = Hk @ XTrue[k] + noise
 
 
 
 for k in range(N):
-
-    kf.predict(F(k), Q)
+    # Fk = F(k)
+    
+    kf.predict(Fk, Qk)
 
     innovation, S, K = kf.update(Y[k], H(k), R(k))
 
