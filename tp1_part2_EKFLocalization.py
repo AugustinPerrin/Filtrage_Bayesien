@@ -118,6 +118,9 @@ def get_observation(k):
     z = observation_model(xTrue, iFeature, Map) + zNoise
     z[1, 0] = angle_wrap(z[1, 0])
 
+    if k > 2500 and k < 3500:
+        z = np.array([[0], [0]])
+        
     return [z, iFeature]
 
 
@@ -145,27 +148,45 @@ def observation_model(xVeh, iFeature, Map):
 
 # h(x) Jacobian wrt x
 def get_obs_jac(xPred, iFeature, Map):
+    
     jH = np.zeros((2, 3))
 
-    # TODO
+    r = np.linalg.norm(Map[0:2, iFeature:(iFeature+1)]-xPred[0:2])
+    delta_x = Map[0, iFeature] - xPred[0]
+    delta_x = delta_x[0]
+    delta_y = Map[1, iFeature] -xPred[1]
+    delta_y = delta_y[0]
+
+    jH[0,0] = -delta_x/r
+    jH[0,1] = -delta_y/r
+
+    jH[1,0] = delta_y/(r**2)
+    jH[1,1] = -delta_x/(r**2)
+    jH[1,2] = -1
 
     return jH
 
 
 # f(x,u) Jacobian wrt x
 def A(x, u):
-    Jac = np.zeros((3, 3))
-
-    # TODO
+    
+    Jac = np.eye(3)
+    Jac[0,2] = -u[0][0]*np.sin(x[2][0]) - u[1][0]*np.cos(x[2][0])
+    Jac[1,2] = u[0][0]*np.cos(x[2][0]) - u[1][0]*np.sin(x[2][0])
 
     return Jac
 
 
 # f(x,u) Jacobian wrt u
 def B(x, u):
-    Jac = np.zeros((3, 3))
 
-    # TODO
+    Jac = np.zeros((3, 3))
+    Jac[0,0] = np.cos(x[2][0])
+    Jac[0,1] = -np.sin(x[2][0])
+    Jac[1,0] = np.sin(x[2][0])
+    Jac[1,1] = np.cos(x[2][0])
+    Jac[2,2] = 1
+
 
     return Jac
 

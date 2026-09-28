@@ -36,7 +36,7 @@ Fk = np.eye(6,6)
 Fk[0,3] = DeltaT
 Fk[1,4] = DeltaT
 Fk[2,5] = DeltaT
-
+print(Fk)
 Qk = np.eye(6,6)
 Qk[0,0] = 0.0001
 Qk[1,1] = 0.0001
@@ -66,10 +66,10 @@ print("Rk",Rk)
 kf = kalman.KalmanFilter(X0, P0)
 
 def F(k):
-    return Fk
+    return np.asarray(Fk)
 
 def Q(k):
-    return Qk
+    return np.asarray(Qk)
 
 def H(k):
     return Hk
@@ -80,22 +80,54 @@ def R(k):
 
 def simulate_x_step(k):
     global XTrue
-    # TODO
+    
+    noise = np.linalg.cholesky(Qk) @ np.random.randn(6)
 
+    if k!=0:
+        XTrue[k] = Fk @ XTrue[k-1] + noise
+    print(f"Voici XTrue : {XTrue[k]} et k : {k}")
+    
 def simulate_y(k):
     global XTrue, Y
-    # TODO
+    # Hk = H(k)
+    # Rk = R(k)
+
+    noise = np.linalg.cholesky(Rk) @ np.random.randn(3)
+
+    if k!=0:
+        Y[k] = Hk @ XTrue[k] + noise
+
+
 
 for k in range(N):
-    # TODO
-    pass
+    # Fk = F(k)
 
+    simulate_x_step(k+1)
+
+    kf.predict(Fk, Qk)
+    
+    simulate_y(k+1)
+    
+    innovation, S, K = kf.update(Y[k], H(k), R(k))
+
+    if k == 0:
+        print("innovation ", innovation)
+        print("K ", K)
+        print("x(k+1|k+1) ", kf.x)
+        print("P(k+1|k+1) ", kf.P)
+        print("----------------")
+
+    XEst[k + 1] = kf.x
+    PEst[k + 1] = kf.P
+
+    pass
 fig, axes = plt.subplots(2, 3, sharex=True)
 
 t = np.arange(N+1) - 1
 
 x_true = XTrue[:,0]
 y_true = XTrue[:,1]
+print(y_true)
 z_true = XTrue[:,2]
 vx_true = XTrue[:,3]
 vy_true = XTrue[:,4]
