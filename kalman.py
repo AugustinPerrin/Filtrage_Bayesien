@@ -13,7 +13,7 @@ class KalmanFilter:
             P_k|k-1 = F P_k-1 F.T + Q
         """
         F = np.asarray(F)
-        Q = np.sarray(Q)
+        Q = np.asarray(Q)
 
         self.x = F @ self.x
         self.P = F @ self.P @ F.T + Q
