@@ -118,6 +118,9 @@ def get_observation(k):
     z = observation_model(xTrue, iFeature, Map) + zNoise
     z[1, 0] = angle_wrap(z[1, 0])
 
+    if k > 2500 and k < 3500:
+        z = np.array([[0], [0]])
+        
     return [z, iFeature]
 
 
