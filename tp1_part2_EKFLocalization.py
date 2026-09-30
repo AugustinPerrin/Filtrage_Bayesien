@@ -118,6 +118,9 @@ def get_observation(k):
     z = observation_model(xTrue, iFeature, Map) + zNoise
     z[1, 0] = angle_wrap(z[1, 0])
 
+    if k > 2500 and k < 3500:
+        z = None
+        
     return [z, iFeature]
 
 
@@ -145,46 +148,79 @@ def observation_model(xVeh, iFeature, Map):
 
 # h(x) Jacobian wrt x
 def get_obs_jac(xPred, iFeature, Map):
+    
     jH = np.zeros((2, 3))
 
-    # TODO
+    r = np.linalg.norm(Map[0:2, iFeature:(iFeature+1)]-xPred[0:2])
+    delta_x = Map[0, iFeature] - xPred[0]
+    delta_x = delta_x[0]
+    delta_y = Map[1, iFeature] -xPred[1]
+    delta_y = delta_y[0]
+
+    jH[0,0] = -delta_x/r
+    jH[0,1] = -delta_y/r
+
+    jH[1,0] = delta_y/(r**2)
+    jH[1,1] = -delta_x/(r**2)
+    jH[1,2] = -1
 
     return jH
 
 
 # f(x,u) Jacobian wrt x
 def A(x, u):
-    Jac = np.zeros((3, 3))
-
-    # TODO
+    
+    Jac = np.eye(3)
+    Jac[0,2] = -u[0][0]*np.sin(x[2][0]) - u[1][0]*np.cos(x[2][0])
+    Jac[1,2] = u[0][0]*np.cos(x[2][0]) - u[1][0]*np.sin(x[2][0])
 
     return Jac
 
 
 # f(x,u) Jacobian wrt u
 def B(x, u):
-    Jac = np.zeros((3, 3))
 
-    # TODO
+    Jac = np.zeros((3, 3))
+    Jac[0,0] = np.cos(x[2][0])
+    Jac[0,1] = -np.sin(x[2][0])
+    Jac[1,0] = np.sin(x[2][0])
+    Jac[1,1] = np.cos(x[2][0])
+    Jac[2,2] = 1
 
     return Jac
 
 
-# ---- Gloabl variables ----
+# ---- Global variables ----
 
 # Simulation length
 nSteps = 6000
 
 # Location of landmarks
-Map = 140*np.random.rand(2, 30)-70
+Map = 140*np.random.rand(2, 30) - 70
 
 # True covariance of errors used for simulating robot movements
 QTrue = np.diag([0.01, 0.01, 1*pi/180]) ** 2
 PYTrue = np.diag([5.0, 6*pi/180]) ** 2
 
-# Modeled errors used in the Kalman filter process
-QEst = 10*np.eye(3, 3) @ QTrue
-PYEst = 10*np.eye(2, 2) @ PYTrue
+# Modeled errors used in the Kalman filter process (Q1 & Q2)
+#QEst = 10*np.eye(3, 3) @ QTrue
+#PYEst = 10*np.eye(2, 2) @ PYTrue
+
+# Modeled errors used in the Kalman filter process (Q3)
+SCENARIOS = {
+    "reference":        ((10, 10, 10),       (10, 10)),
+    "grossly_underestimate_all": ((1e-3, 1e-3, 1e-3), (1e-3, 1e-3)),  
+    "grossly_overestimate_all":  ((1e3, 1e3, 1e3),    (1e3, 1e3)),    
+    "underestimate_Q":   ((1e-3, 1e-3, 1e-3), (10, 10)),      
+    "overestimate_Q":    ((1e4, 1e4, 1e4),     (10, 10)),     
+    "low_PY_high_Q":  ((1e4, 1e4, 1e4),     (1e-4, 1e-4)),  
+    "large_sigma_r":     ((10, 10, 10),        (1e3, 10)),    
+}
+SCENARIO = "grossly_underestimate_all"         
+
+QF, PYF = SCENARIOS[SCENARIO]
+QEst = np.diag(np.diag(QTrue) * np.array(QF, dtype=float))
+PYEst = np.diag(np.diag(PYTrue) * np.array(PYF, dtype=float))
 
 # initial conditions
 xTrue = np.array([[1, -40, -pi/2]]).T
@@ -295,6 +331,7 @@ for k in range(1, nSteps):
 
 #        plt.pause(0.001)
 
-plt.savefig('EKFLocalization1.png')
+# plt.savefig('EKFLocalization1.png') # Q1 & Q2
+plt.savefig(f'EKFLocalization_{SCENARIO}.png') # Q3
 #print("Press Q in figure to finish...")
 plt.show()
