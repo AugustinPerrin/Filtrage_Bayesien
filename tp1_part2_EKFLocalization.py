@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
-np.random.seed(1) # pour que les 3 éxécutions de la Q4 aient la même carte et les mêmes bruits
+np.random.seed(1) # so that the 3 Q4 runs use the same map and the same sounds
 
 # ---- Helper functions ----
 
