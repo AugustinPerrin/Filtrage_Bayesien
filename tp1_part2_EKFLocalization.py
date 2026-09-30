@@ -118,8 +118,8 @@ def get_observation(k):
     z = observation_model(xTrue, iFeature, Map) + zNoise
     z[1, 0] = angle_wrap(z[1, 0])
 
-    if k > 2500 and k < 3500:
-        z = np.array([[0], [0]])
+    # if k > 2500 and k < 3500:
+    #     z = None
         
     return [z, iFeature]
 
@@ -201,10 +201,20 @@ Map = 140*np.random.rand(2, 30)-70
 
 # True covariance of errors used for simulating robot movements
 QTrue = np.diag([0.01, 0.01, 1*pi/180]) ** 2
-PYTrue = np.diag([5.0, 6*pi/180]) ** 2
+#coefficient de pondération de la matrice Q à modifier à la main pour les différents scénarios
+ponderation_Q = 1
+QTrue = QTrue * ponderation_Q # overestimation
+#coefficient de pondération de bruit de la distance d'observation
+distance = 0.1
+#coefficient de pondération de bruit de l'angle d'observation
+angle = 10000
+PYTrue = np.diag([5.0*distance, (6*pi/180)*angle]) ** 2
+# coefficient de pondération de la matrice PY à modifier à la main pour les différents scénarios
+ponderation_PY = 1
+PYTrue = PYTrue * ponderation_PY # overestimation
 
 # Modeled errors used in the Kalman filter process
-QEst = 10*np.eye(3, 3) @ QTrue
+QEst = 10*np.eye(3, 3) @ QTrue 
 PYEst = 10*np.eye(2, 2) @ PYTrue
 
 # initial conditions
@@ -279,6 +289,8 @@ for k in range(1, nSteps):
                     lambda event: [sys.exit(0) if event.key == 'escape' else None])
 
         ax1.cla()
+        # ax1.set_title(f" Coefficients multiplicateurs des bruits : Q*{ponderation_Q} ,  PY*{ponderation_PY}")
+        ax1.set_title(f"Coefficients multiplicateurs bruits d'observation : distance*{distance} , angle*{angle}")
 
         # Plot true landmark and trajectory
         ax1.plot(Map[0, :], Map[1, :], "*k")
