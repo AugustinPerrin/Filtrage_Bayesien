@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
+np.random.seed(1) # pour que les 3 éxécutions de la Q4 aient la même carte et les mêmes bruits
 
 # ---- Helper functions ----
 
@@ -33,10 +34,13 @@ def plot_covariance_ellipse(xEst, PEst, axes, lineType):
         bigind = 1
         smallind = 0
 
-    if eigval[smallind] < 0:
-        print('Pb with Pxy :\n', Pxy)
-        exit()
+    #if eigval[smallind] < 0:
+     #   print('Pb with Pxy :\n', Pxy)
+      #  exit()
 
+    if eigval[smallind] < 0:
+        return 
+    
     t = np.arange(0, 2 * pi + 0.1, 0.1)
     a = sqrt(eigval[bigind])
     b = sqrt(eigval[smallind])
@@ -118,8 +122,8 @@ def get_observation(k):
     z = observation_model(xTrue, iFeature, Map) + zNoise
     z[1, 0] = angle_wrap(z[1, 0])
 
-    if k > 2500 and k < 3500:
-        z = None
+    #if k > 2500 and k < 3500:
+    #    z = None
         
     return [z, iFeature]
 
@@ -203,24 +207,26 @@ QTrue = np.diag([0.01, 0.01, 1*pi/180]) ** 2
 PYTrue = np.diag([5.0, 6*pi/180]) ** 2
 
 # Modeled errors used in the Kalman filter process (Q1 & Q2)
-#QEst = 10*np.eye(3, 3) @ QTrue
-#PYEst = 10*np.eye(2, 2) @ PYTrue
+QEst = 10*np.eye(3, 3) @ QTrue
+PYEst = 10*np.eye(2, 2) @ PYTrue
+# Q4 : components of the observation utilized [distance, angle]
+OBS_IDX = [0, 1]          # [0] distance alone, [1] angle alone, [0, 1] the 2
 
 # Modeled errors used in the Kalman filter process (Q3)
-SCENARIOS = {
-    "reference":        ((10, 10, 10),       (10, 10)),
-    "grossly_underestimate_all": ((1e-3, 1e-3, 1e-3), (1e-3, 1e-3)),  
-    "grossly_overestimate_all":  ((1e3, 1e3, 1e3),    (1e3, 1e3)),    
-    "underestimate_Q":   ((1e-3, 1e-3, 1e-3), (10, 10)),      
-    "overestimate_Q":    ((1e4, 1e4, 1e4),     (10, 10)),     
-    "low_PY_high_Q":  ((1e4, 1e4, 1e4),     (1e-4, 1e-4)),  
-    "large_sigma_r":     ((10, 10, 10),        (1e3, 10)),    
-}
-SCENARIO = "grossly_underestimate_all"         
+#SCENARIOS = {
+#    "reference":        ((10, 10, 10),       (10, 10)),
+#   "grossly_underestimate_all": ((1e-3, 1e-3, 1e-3), (1e-3, 1e-3)),  
+#    "grossly_overestimate_all":  ((1e3, 1e3, 1e3),    (1e3, 1e3)),    
+#    "underestimate_Q":   ((1e-3, 1e-3, 1e-3), (10, 10)),      
+#    "overestimate_Q":    ((1e4, 1e4, 1e4),     (10, 10)),     
+#    "low_PY_high_Q":  ((1e4, 1e4, 1e4),     (1e-4, 1e-4)),  
+#    "large_sigma_r":     ((10, 10, 10),        (1e3, 10)),    
+#}
+#SCENARIO = "reference"   
 
-QF, PYF = SCENARIOS[SCENARIO]
-QEst = np.diag(np.diag(QTrue) * np.array(QF, dtype=float))
-PYEst = np.diag(np.diag(PYTrue) * np.array(PYF, dtype=float))
+#QF, PYF = SCENARIO[SCENARIO]
+#QEst = np.diag(np.diag(QTrue) * np.array(QF, dtype=float))
+#PYEst = np.diag(np.diag(PYTrue) * np.array(PYF, dtype=float))
 
 # initial conditions
 xTrue = np.array([[1, -40, -pi/2]]).T
@@ -256,14 +262,20 @@ for k in range(1, nSteps):
         zPred = observation_model(xPred, iFeature, Map)
 
         # get observation Jacobian
-        H = get_obs_jac(xPred, iFeature, Map)
+        #H = get_obs_jac(xPred, iFeature, Map)
+        H = get_obs_jac(xPred, iFeature, Map)[OBS_IDX, :] #Q4
 
         # compute observation error (innovation)
-        Innov = z-zPred
-        Innov[1, 0] = angle_wrap(Innov[1, 0])
+        #Innov = z-zPred
+        #Innov[1, 0] = angle_wrap(Innov[1, 0])
+        Innov = (z - zPred)[OBS_IDX, :]     # Q4
+        if 1 in OBS_IDX:
+            Innov[-1, 0] = angle_wrap(Innov[-1, 0])
 
         # compute Kalman gain - with dir and distance
-        S = H @ PPred @ H.T + PYEst
+        #S = H @ PPred @ H.T + PYEst
+        #W = PPred @ H.T @ np.linalg.inv(S)
+        S = H @ PPred @ H.T + PYEst[np.ix_(OBS_IDX, OBS_IDX)]
         W = PPred @ H.T @ np.linalg.inv(S)
 
         # perform kalman update
@@ -331,7 +343,19 @@ for k in range(1, nSteps):
 
 #        plt.pause(0.001)
 
-# plt.savefig('EKFLocalization1.png') # Q1 & Q2
-plt.savefig(f'EKFLocalization_{SCENARIO}.png') # Q3
+# ---- summary figures for the Q4 table (k > 1000, after convergence) ----
+k0 = 1000
+e = hxError[:, k0:]          # real error (x, y, theta)
+s = hxVar[:, k0:]            # estimated standard deviation (x, y, theta)
+
+rmse_pos = np.sqrt(np.mean(e[0]**2 + e[1]**2))
+rmse_cap = np.degrees(np.sqrt(np.mean(e[2]**2)))
+sigma_theta = np.degrees(np.mean(s[2]))
+
+print(f"OBS_IDX = {OBS_IDX} ; RMSE position = {rmse_pos:.2f} m ; "
+      f"RMSE cap = {rmse_cap:.1f} deg ; sigma_theta = {sigma_theta:.1f} deg")
+
+plt.savefig('EKFLocalization1.png') # Q1 & Q2 & Q4
+#plt.savefig(f'EKFLocalization_{SCENARIO}.png') # Q3
 #print("Press Q in figure to finish...")
 plt.show()
