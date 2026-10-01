@@ -107,7 +107,10 @@ for k in range(N):
     kf.predict(Fk, Qk)
     
     simulate_y(k+1)
-    
+
+    # # trou de mesure
+    # if k<10 or k>20:
+    #     innovation, S, K = kf.update(Y[k], H(k), R(k))
     innovation, S, K = kf.update(Y[k], H(k), R(k))
 
     if k == 0:

@@ -36,7 +36,11 @@ Q = np.array([[0.0001, 0.],
 R = np.array([
     [np.deg2rad(1.0)**2]
 ])
-
+#augmentation des bruits
+facteur_Q = 1
+facteur_R = 1
+Q = Q*facteur_Q
+R = R*facteur_R
 
 def f(x):
     return F @ x

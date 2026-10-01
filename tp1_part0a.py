@@ -3,7 +3,7 @@ import numpy as np
 import graph_helper as gh;
 import matplotlib.pyplot as plt
 
-N = 9
+N = 30
 
 XTrue = np.zeros((N + 1, 2))
 XTrue[0] = np.array([20.,
