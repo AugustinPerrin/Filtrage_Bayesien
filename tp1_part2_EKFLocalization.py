@@ -306,7 +306,7 @@ for k in range(1, nSteps):
                     lambda event: [sys.exit(0) if event.key == 'escape' else None])
 
         ax1.cla()
-
+        # ax1.set_title(SCENARIO)
         # Plot true landmark and trajectory
         ax1.plot(Map[0, :], Map[1, :], "*k")
         ax1.plot(hxTrue[0, :], hxTrue[1, :], "-k", label="True")
